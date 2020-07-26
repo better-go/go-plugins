@@ -42,7 +42,7 @@ func StartSpanFromContext(ctx context.Context, tracer opentracing.Tracer, name s
 	nmd := make(metadata.Metadata, 1)
 
 	sp := tracer.StartSpan(name, opts...)
-	log.Warnf("DebugX: trace: start span, sp=%v, name=%v, opt=%+v", sp, name, opts)
+	log.Infof("DebugX: trace: start span, sp=%v, name=%v, opt=%+v", sp, name, opts)
 
 	if err := sp.Tracer().Inject(sp.Context(), opentracing.TextMap, opentracing.TextMapCarrier(nmd)); err != nil {
 		return nil, nil, err
@@ -54,6 +54,8 @@ func StartSpanFromContext(ctx context.Context, tracer opentracing.Tracer, name s
 
 	ctx = opentracing.ContextWithSpan(ctx, sp)
 	ctx = metadata.NewContext(ctx, md)
+
+	log.Infof("DebugX: trace: ctx=%+v, sp=%+v", ctx, sp)
 	return ctx, sp, nil
 }
 
@@ -141,7 +143,7 @@ func NewHandlerWrapper(ot opentracing.Tracer) server.HandlerWrapper {
 			}
 			name := fmt.Sprintf("%s.%s", req.Service(), req.Endpoint())
 			ctx, span, err := StartSpanFromContext(ctx, ot, name)
-			log.Warnf("DebugX: start span: ctx=%v, span=%v, err=%v", ctx, span, err)
+			log.Infof("DebugX: start span: ctx=%v, span=%v, err=%v", ctx, span, err)
 			if err != nil {
 				return err
 			}
@@ -149,7 +151,16 @@ func NewHandlerWrapper(ot opentracing.Tracer) server.HandlerWrapper {
 
 			// call handler:
 			err = h(ctx, req, rsp)
-			log.Warnf("DebugX: call handler: ctx=%v, req=%+v, resp=%+v, err=%v", ctx, req, rsp, err)
+			log.Infof("DebugX: call handler: ctx=%v, req=%+v, resp=%+v, err=%v", ctx, req, rsp, err)
+
+			//
+			// start test
+			//
+			span.LogFields(opentracinglog.String("service", req.Service()))
+			span.SetTag("service", true)
+
+			// end test
+
 			if err != nil {
 				span.LogFields(opentracinglog.String("error", err.Error()))
 				span.SetTag("error", true)
