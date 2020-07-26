@@ -7,6 +7,7 @@ import (
 	"context"
 	"strings"
 
+	"github.com/better-go/pkg/log"
 	"github.com/micro/go-micro/v2/client"
 	"github.com/micro/go-micro/v2/metadata"
 	"github.com/micro/go-micro/v2/registry"
@@ -41,6 +42,7 @@ func StartSpanFromContext(ctx context.Context, tracer opentracing.Tracer, name s
 	nmd := make(metadata.Metadata, 1)
 
 	sp := tracer.StartSpan(name, opts...)
+	log.Warnf("DebugX: trace: start span, sp=%v, name=%v, opt=%+v", sp, name, opts)
 
 	if err := sp.Tracer().Inject(sp.Context(), opentracing.TextMap, opentracing.TextMapCarrier(nmd)); err != nil {
 		return nil, nil, err
@@ -139,11 +141,16 @@ func NewHandlerWrapper(ot opentracing.Tracer) server.HandlerWrapper {
 			}
 			name := fmt.Sprintf("%s.%s", req.Service(), req.Endpoint())
 			ctx, span, err := StartSpanFromContext(ctx, ot, name)
+			log.Warnf("DebugX: start span: ctx=%v, span=%v, err=%v", ctx, span, err)
 			if err != nil {
 				return err
 			}
 			defer span.Finish()
-			if err = h(ctx, req, rsp); err != nil {
+
+			// call handler:
+			err = h(ctx, req, rsp)
+			log.Warnf("DebugX: call handler: ctx=%v, req=%+v, resp=%+v, err=%v", ctx, req, rsp, err)
+			if err != nil {
 				span.LogFields(opentracinglog.String("error", err.Error()))
 				span.SetTag("error", true)
 			}
