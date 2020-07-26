@@ -163,6 +163,10 @@ func NewHandlerWrapper(ot opentracing.Tracer) server.HandlerWrapper {
 
 			if err != nil {
 				span.LogFields(opentracinglog.String("error", err.Error()))
+				span.LogFields(
+					opentracinglog.String("event", "error"),
+					opentracinglog.String("message", err.Error()),
+				)
 				span.SetTag("error", true)
 			}
 			return err
